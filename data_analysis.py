@@ -2,6 +2,7 @@ from google.cloud import firestore
 from datetime import datetime, timezone, timedelta
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import numpy as np
 import pytz
 
 # Initialize Firestore client
@@ -42,6 +43,7 @@ datetime_objects = [dt.replace(tzinfo=timezone_utc).astimezone(timezone_pst) for
 start_time = min(datetime_objects)
 end_time = max(datetime_objects)
 
+# '''
 # Generate ticks for every hour
 ticks = []
 current_time = start_time.replace(minute=0, second=0, microsecond=0)
@@ -58,3 +60,49 @@ plt.subplots_adjust(bottom=0.5)
 plt.xticks(ticks, [dt.strftime('%Y-%m-%d %H:%M:%S') for dt in ticks], rotation=45, ha='right')
 # Display the plot
 plt.savefig('plot.png')
+
+plt.clf()
+
+# '''
+# Function to perform cubic spline interpolation
+def cubic_spline_interpolation(x, x_data, y_data):
+    n = len(x_data)
+    for i in range(n - 1):
+        if x_data[i] <= x <= x_data[i + 1]:
+            break
+    h = x_data[i + 1] - x_data[i]
+    a = (x_data[i + 1] - x) / h
+    b = (x - x_data[i]) / h
+    interpolated_value = a * y_data[i] + b * y_data[i + 1] + ((a ** 3 - a) * y_data[i + 1] ** 2 + (b ** 3 - b) * y_data[i] ** 2) * h ** 2 / 6
+
+
+    # Print the polynomial function
+    print(f"Piecewise function for interval [{x_data[i]}, {x_data[i+1]}]: {a} * {y_data[i]} + {b} * {y_data[i+1]} + (({a}^3 - {a}) * {y_data[i+1]}^2 + ({b}^3 - {b}) * {y_data[i]}^2) * {h}^2 / 6")
+    
+    return interpolated_value
+
+# Convert timestamps to Unix timestamps (numerical values)
+timestamps_unix = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S").timestamp() for ts in timestamps]
+
+# Generate x values for plotting using Unix timestamps
+x_values = np.linspace(min(timestamps_unix), max(timestamps_unix), 400)
+
+# Compute y values using the piecewise function
+y_values = [cubic_spline_interpolation(x, timestamps_unix, durations) for x in x_values]
+
+
+# Plot the piecewise function
+plt.plot(x_values, y_values, label='Piecewise Function')
+# plt.ylim(min(durations) - 10, min(y_values) + 10)  # y axis to be able to see interpolated function
+
+# plt.ylim(min(durations) - 10, max(durations) + 10)  # y axis to be able to see data points
+
+plt.scatter(timestamps_unix, durations, color='red', label='Data Points')
+plt.xlabel('Time (Unix Timestamp)')
+plt.ylabel('Travel Duration (Minutes)')
+plt.title('Piecewise Cubic Spline Interpolation')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+plt.savefig('temp.png')
