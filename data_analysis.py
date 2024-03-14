@@ -63,23 +63,48 @@ plt.savefig('plot.png')
 
 plt.clf()
 
-# '''
-# Function to perform cubic spline interpolation
-def cubic_spline_interpolation(x, x_data, y_data):
-    n = len(x_data)
-    for i in range(n - 1):
-        if x_data[i] <= x <= x_data[i + 1]:
-            break
-    h = x_data[i + 1] - x_data[i]
-    a = (x_data[i + 1] - x) / h
-    b = (x - x_data[i]) / h
-    interpolated_value = a * y_data[i] + b * y_data[i + 1] + ((a ** 3 - a) * y_data[i + 1] ** 2 + (b ** 3 - b) * y_data[i] ** 2) * h ** 2 / 6
+def cubic_interpolate(x0, x, y):
+    """ Natural cubic spline interpolate function
+        This function is licenced under: Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
+        https://creativecommons.org/licenses/by-sa/3.0/
+        Author raphael valentin
+        Date 25 Mar 2022
+    """
+    xdiff = np.diff(x)
+    dydx = np.diff(y) / np.diff(x)
 
+    n = size = len(x)
 
-    # Print the polynomial function
-    print(f"Piecewise function for interval [{x_data[i]}, {x_data[i+1]}]: {a} * {y_data[i]} + {b} * {y_data[i+1]} + (({a}^3 - {a}) * {y_data[i+1]}^2 + ({b}^3 - {b}) * {y_data[i]}^2) * {h}^2 / 6")
-    
-    return interpolated_value
+    w = np.empty(n-1, float)
+    z = np.empty(n, float)
+
+    w[0] = 0.
+    z[0] = 0.
+    for i in range(1, n-1):
+        m = xdiff[i-1] * (2 - w[i-1]) + 2 * xdiff[i]
+        w[i] = xdiff[i] / m
+        z[i] = (6*(dydx[i] - dydx[i-1]) - xdiff[i-1]*z[i-1]) / m
+    z[-1] = 0.
+
+    for i in range(n-2, -1, -1):
+        z[i] = z[i] - w[i]*z[i+1]
+
+    # find index (it requires x0 is already sorted)
+    index = np.searchsorted(x,x0)
+    index = np.clip(index, 1, size-1)  # Clip index values within the range [1, size-1]    
+
+    xi1, xi0 = x[index], x[index-1]
+    yi1, yi0 = y[index], y[index-1]
+    zi1, zi0 = z[index], z[index-1]
+    hi1 = xi1 - xi0
+
+    # calculate cubic
+    f0 = zi0/(6*hi1)*(xi1-x0)**3 + \
+        zi1/(6*hi1)*(x0-xi0)**3 + \
+        (yi1/hi1 - zi1*hi1/6)*(x0-xi0) + \
+        (yi0/hi1 - zi0*hi1/6)*(xi1-x0)
+    return f0
+
 
 # Convert timestamps to Unix timestamps (numerical values)
 timestamps_unix = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S").timestamp() for ts in timestamps]
@@ -88,14 +113,13 @@ timestamps_unix = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S").timestamp() for ts
 x_values = np.linspace(min(timestamps_unix), max(timestamps_unix), 400)
 
 # Compute y values using the piecewise function
-y_values = [cubic_spline_interpolation(x, timestamps_unix, durations) for x in x_values]
+y_values = [cubic_interpolate(x, timestamps_unix, durations) for x in x_values]
 
 
 # Plot the piecewise function
 plt.plot(x_values, y_values, label='Piecewise Function')
-# plt.ylim(min(durations) - 10, min(y_values) + 10)  # y axis to be able to see interpolated function
 
-# plt.ylim(min(durations) - 10, max(durations) + 10)  # y axis to be able to see data points
+# plt.xlim(50000, 55000)
 
 plt.scatter(timestamps_unix, durations, color='red', label='Data Points')
 plt.xlabel('Time (Unix Timestamp)')
