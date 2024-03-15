@@ -23,7 +23,10 @@ for doc in docs:
     unix_timestamp = doc.to_dict()['current_time']
     travel_time = doc.to_dict()['duration']
     parts = travel_time.split()
-    travel_time = int(parts[0])
+    if len(parts) == 4:
+        travel_time = int(parts[0]) * 60 + int(parts[2])
+    else:
+        travel_time = int(parts[0])
     data = [unix_timestamp, travel_time]
     all_data.append(data)
 sorted_data = sorted(all_data, key=lambda x: x[0])
