@@ -30,10 +30,57 @@ for doc in docs:
     data = [unix_timestamp, travel_time]
     all_data.append(data)
 sorted_data = sorted(all_data, key=lambda x: x[0])
-print(sorted_data)
+# print(sorted_data)
 # Extract x and y coordinates from the data
 timestamps = [entry[0] for entry in sorted_data]
 durations = [entry[1] for entry in sorted_data]
+
+sum_at_15_minute_interval = [0] * 96
+count_at_15_minute_interval = [0] * 96
+average_at_15_minute_interval = [0] * 96
+
+for i in range(0,len(durations)):
+    duration = durations[i]
+    sum_at_15_minute_interval[i % 96] += duration
+    count_at_15_minute_interval[i % 96] += 1
+
+for i in range(0,96):
+    average_at_15_minute_interval[i] = sum_at_15_minute_interval[i] / count_at_15_minute_interval[i]
+
+# Start time
+start_time = datetime.strptime("00:00:00", "%H:%M:%S")
+
+# End time
+end_time = datetime.strptime("23:45:00", "%H:%M:%S")
+
+# Initialize a list to store the times
+times = []
+
+# Generate times at 15-minute intervals
+current_time = start_time
+while current_time <= end_time:
+    times.append(current_time.strftime("%H:%M:%S"))
+    current_time += timedelta(minutes=15)
+
+tick_times = []
+current_time = start_time
+while current_time <= end_time:
+    tick_times.append(current_time.strftime("%H:%M:%S"))
+    current_time += timedelta(minutes=60)
+
+plt.figure(figsize=(12, 6))
+plt.scatter(times, average_at_15_minute_interval, color='g')
+plt.xlabel('Time (PST)')
+plt.ylabel('Average Travel Time (Minutes)')
+plt.title('Average Travel Time from UCLA to LAX at 15-minute Intervals Over 24 Hour Period')
+plt.grid(True)
+plt.tight_layout()
+plt.xticks(tick_times, rotation=45, ha='right')
+plt.subplots_adjust(bottom=0.5)
+plt.savefig('averagestuff.png')
+
+plt.clf()
+
 
 # Convert timestamps to datetime objects
 datetime_objects_utc = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S") for ts in timestamps]
@@ -55,9 +102,9 @@ while current_time <= end_time:
     current_time += timedelta(hours=4)
 # Plotting
 plt.figure(figsize=(18, 6))  # Adjust figure size to make x-axis longer
-plt.plot(datetime_objects, durations)
-plt.xlabel('Time')
-plt.ylabel('Duration')
+plt.scatter(datetime_objects, durations, color = 'r')
+plt.xlabel('Time (PST)')
+plt.ylabel('Travel Time UCLA to LAX')
 plt.title('Data with Timestamps and Durations')
 plt.subplots_adjust(bottom=0.5)
 plt.xticks(ticks, [dt.strftime('%Y-%m-%d %H:%M:%S') for dt in ticks], rotation=45, ha='right')
@@ -109,6 +156,33 @@ def cubic_interpolate(x0, x, y):
     return f0
 
 
+# # Convert timestamps to Unix timestamps (numerical values)
+# timestamps_unix = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S").timestamp() for ts in timestamps]
+
+# # Generate x values for plotting using Unix timestamps
+# x_values = np.linspace(min(timestamps_unix), max(timestamps_unix), 400)
+
+# # Compute y values using the piecewise function
+# y_values = [cubic_interpolate(x, timestamps_unix, durations) for x in x_values]
+
+
+# # Plot the piecewise function
+# plt.plot(x_values, y_values, label='Piecewise Function')
+
+# # plt.xlim(50000, 55000)
+
+# plt.scatter(timestamps_unix, durations, color='red', label='Data Points')
+# plt.xlabel('Time (Unix Timestamp)')
+# plt.ylabel('Travel Duration (Minutes)')
+# plt.title('Piecewise Cubic Spline Interpolation')
+# plt.grid(True)
+# plt.legend()
+# plt.show()
+
+# Function to convert Unix timestamp to datetime object in PST timezone
+def unix_to_pst(timestamp):
+    return datetime.fromtimestamp(timestamp, timezone.utc).astimezone(timezone(timedelta(hours=-8)))
+
 # Convert timestamps to Unix timestamps (numerical values)
 timestamps_unix = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S").timestamp() for ts in timestamps]
 
@@ -118,15 +192,19 @@ x_values = np.linspace(min(timestamps_unix), max(timestamps_unix), 400)
 # Compute y values using the piecewise function
 y_values = [cubic_interpolate(x, timestamps_unix, durations) for x in x_values]
 
+# Convert x values (Unix timestamps) to datetime objects in PST timezone
+x_values_pst = [unix_to_pst(x) for x in x_values]
 
 # Plot the piecewise function
-plt.plot(x_values, y_values, label='Piecewise Function')
+plt.plot(x_values_pst, y_values, label='Piecewise Function')
 
-# plt.xlim(50000, 55000)
+# Plot the data points
+timestamps_pst = [unix_to_pst(ts) for ts in timestamps_unix]
+plt.scatter(timestamps_pst, durations, color='red', label='Data Points')
 
-plt.scatter(timestamps_unix, durations, color='red', label='Data Points')
-plt.xlabel('Time (Unix Timestamp)')
+plt.xlabel('Time (PST)')
 plt.ylabel('Travel Duration (Minutes)')
+plt.xticks(ticks, [dt.strftime('%Y-%m-%d %H:%M:%S') for dt in ticks], rotation=45, ha='right')
 plt.title('Piecewise Cubic Spline Interpolation')
 plt.grid(True)
 plt.legend()
