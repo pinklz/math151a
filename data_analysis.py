@@ -35,84 +35,6 @@ sorted_data = sorted(all_data, key=lambda x: x[0])
 timestamps = [entry[0] for entry in sorted_data]
 durations = [entry[1] for entry in sorted_data]
 
-sum_at_15_minute_interval = [0] * 96
-count_at_15_minute_interval = [0] * 96
-average_at_15_minute_interval = [0] * 96
-
-for i in range(0,len(durations)):
-    duration = durations[i]
-    sum_at_15_minute_interval[i % 96] += duration
-    count_at_15_minute_interval[i % 96] += 1
-
-for i in range(0,96):
-    average_at_15_minute_interval[i] = sum_at_15_minute_interval[i] / count_at_15_minute_interval[i]
-
-# Start time
-start_time = datetime.strptime("00:00:00", "%H:%M:%S")
-
-# End time
-end_time = datetime.strptime("23:45:00", "%H:%M:%S")
-
-# Initialize a list to store the times
-times = []
-
-# Generate times at 15-minute intervals
-current_time = start_time
-while current_time <= end_time:
-    times.append(current_time.strftime("%H:%M:%S"))
-    current_time += timedelta(minutes=15)
-
-tick_times = []
-current_time = start_time
-while current_time <= end_time:
-    tick_times.append(current_time.strftime("%H:%M:%S"))
-    current_time += timedelta(minutes=60)
-
-plt.figure(figsize=(12, 6))
-plt.scatter(times, average_at_15_minute_interval, color='g')
-plt.xlabel('Time (PST)')
-plt.ylabel('Average Travel Time (Minutes)')
-plt.title('Average Travel Time from UCLA to LAX at 15-minute Intervals Over 24 Hour Period')
-plt.grid(True)
-plt.tight_layout()
-plt.xticks(tick_times, rotation=45, ha='right')
-plt.subplots_adjust(bottom=0.5)
-plt.savefig('averagestuff.png')
-
-plt.clf()
-
-
-# Convert timestamps to datetime objects
-datetime_objects_utc = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S") for ts in timestamps]
-
-timezone_utc = pytz.utc
-timezone_pst = pytz.timezone('America/Los_Angeles')  # PST (Pacific Standard Time)
-datetime_objects = [dt.replace(tzinfo=timezone_utc).astimezone(timezone_pst) for dt in datetime_objects_utc]
-
-
-start_time = min(datetime_objects)
-end_time = max(datetime_objects)
-
-# '''
-# Generate ticks for every hour
-ticks = []
-current_time = start_time.replace(minute=0, second=0, microsecond=0)
-while current_time <= end_time:
-    ticks.append(current_time)
-    current_time += timedelta(hours=4)
-# Plotting
-plt.figure(figsize=(18, 6))  # Adjust figure size to make x-axis longer
-plt.scatter(datetime_objects, durations, color = 'r')
-plt.xlabel('Time (PST)')
-plt.ylabel('Travel Time UCLA to LAX')
-plt.title('Data with Timestamps and Durations')
-plt.subplots_adjust(bottom=0.5)
-plt.xticks(ticks, [dt.strftime('%Y-%m-%d %H:%M:%S') for dt in ticks], rotation=45, ha='right')
-# Display the plot
-plt.savefig('plot.png')
-
-plt.clf()
-
 def cubic_interpolate(x0, x, y):
     """ Natural cubic spline interpolate function
         This function is licenced under: Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
@@ -155,29 +77,92 @@ def cubic_interpolate(x0, x, y):
         (yi0/hi1 - zi0*hi1/6)*(xi1-x0)
     return f0
 
+# ----------------------- AVERAGE DATA -----------------------
+sum_at_15_minute_interval = [0] * 96
+count_at_15_minute_interval = [0] * 96
+average_at_15_minute_interval = [0] * 96
 
-# # Convert timestamps to Unix timestamps (numerical values)
-# timestamps_unix = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S").timestamp() for ts in timestamps]
+for i in range(0,len(durations)):
+    duration = durations[i]
+    sum_at_15_minute_interval[i % 96] += duration
+    count_at_15_minute_interval[i % 96] += 1
 
-# # Generate x values for plotting using Unix timestamps
-# x_values = np.linspace(min(timestamps_unix), max(timestamps_unix), 400)
+for i in range(0,96):
+    average_at_15_minute_interval[i] = sum_at_15_minute_interval[i] / count_at_15_minute_interval[i]
 
-# # Compute y values using the piecewise function
-# y_values = [cubic_interpolate(x, timestamps_unix, durations) for x in x_values]
+# Start time
+start_time = datetime.strptime("00:00:00", "%H:%M:%S")
+
+# End time
+end_time = datetime.strptime("23:45:00", "%H:%M:%S")
+
+# Initialize a list to store the times
+times = []
+
+# Generate times at 15-minute intervals
+current_time = start_time
+while current_time <= end_time:
+    times.append(current_time.strftime("%H:%M:%S"))
+    current_time += timedelta(minutes=15)
+
+tick_times = []
+current_time = start_time
+while current_time <= end_time:
+    tick_times.append(current_time.strftime("%H:%M:%S"))
+    current_time += timedelta(minutes=60)
+
+times_unix = [datetime.strptime(time_str, "%H:%M:%S").timestamp() for time_str in times]
+y_values_avg = [cubic_interpolate(x, times_unix, average_at_15_minute_interval) for x in times_unix]
+
+plt.figure(figsize=(12, 6))
+plt.scatter(times, average_at_15_minute_interval, color='g')
+plt.plot(times, y_values_avg, label='piecewise', color='b')
+plt.xlabel('Time (PST)')
+plt.ylabel('Average Travel Time (Minutes)')
+plt.title('Average Travel Time from UCLA to LAX at 15-minute Intervals Over 24 Hour Period')
+plt.grid(True)
+plt.tight_layout()
+plt.xticks(tick_times, rotation=45, ha='right')
+plt.subplots_adjust(bottom=0.5)
+plt.savefig('averagestuff.png')
+
+plt.clf()
+
+# ----------------------- ALL DATA -----------------------
+
+# Convert timestamps to datetime objects
+datetime_objects_utc = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S") for ts in timestamps]
+
+timezone_utc = pytz.utc
+timezone_pst = pytz.timezone('America/Los_Angeles')  # PST (Pacific Standard Time)
+datetime_objects = [dt.replace(tzinfo=timezone_utc).astimezone(timezone_pst) for dt in datetime_objects_utc]
 
 
-# # Plot the piecewise function
-# plt.plot(x_values, y_values, label='Piecewise Function')
+start_time = min(datetime_objects)
+end_time = max(datetime_objects)
 
-# # plt.xlim(50000, 55000)
+# '''
+# Generate ticks for every hour
+ticks = []
+current_time = start_time.replace(minute=0, second=0, microsecond=0)
+while current_time <= end_time:
+    ticks.append(current_time)
+    current_time += timedelta(hours=4)
+# Plotting
+plt.figure(figsize=(18, 6))  # Adjust figure size to make x-axis longer
+plt.scatter(datetime_objects, durations, color = 'r')
+plt.xlabel('Time (PST)')
+plt.ylabel('Travel Time UCLA to LAX')
+plt.title('Data with Timestamps and Durations')
+plt.subplots_adjust(bottom=0.5)
+plt.xticks(ticks, [dt.strftime('%Y-%m-%d %H:%M:%S') for dt in ticks], rotation=45, ha='right')
+# Display the plot
+plt.savefig('plot.png')
 
-# plt.scatter(timestamps_unix, durations, color='red', label='Data Points')
-# plt.xlabel('Time (Unix Timestamp)')
-# plt.ylabel('Travel Duration (Minutes)')
-# plt.title('Piecewise Cubic Spline Interpolation')
-# plt.grid(True)
-# plt.legend()
-# plt.show()
+plt.clf()
+
+
+# ----------------------- INTERPOLATED DATA -----------------------
 
 # Function to convert Unix timestamp to datetime object in PST timezone
 def unix_to_pst(timestamp):
@@ -210,4 +195,4 @@ plt.grid(True)
 plt.legend()
 plt.show()
 
-plt.savefig('temp.png')
+plt.savefig('cubic.png')
