@@ -128,6 +128,76 @@ plt.savefig('averagestuff.png')
 
 plt.clf()
 
+
+
+from datetime import datetime
+
+def convert_to_unix_time(month, day, time):
+    """
+    Converts a given month, day, and time into Unix time.
+
+    Args:
+    - month: Integer representing the month (1-12).
+    - day: Integer representing the day of the month (1-31).
+    - time: String representing the time in the format "HH:MM:SS" (24-hour format).
+
+    Returns:
+    - The Unix time corresponding to the input date and time.
+    """
+    # Combine month, day, and time into a single string
+    date_time_str = f"{month:02d}-{day:02d} {time}"
+
+    # Parse the date and time string into a datetime object
+    date_time_obj = datetime.strptime(date_time_str, "%m-%d %H:%M:%S")
+
+    # Convert the datetime object to Unix time
+    unix_time = date_time_obj.timestamp()
+
+    return unix_time
+
+def predict_travel_time(time_of_day):
+    """
+    Predicts the travel time for a given time of day using cubic spline interpolation on the average travel times.
+
+    Args:
+    - time_of_day: String representing the time of day in the format "HH:MM:SS" (24-hour format).
+
+    Returns:
+    - The predicted travel time for the given time of day.
+    """
+    # Convert the time of day to Unix time
+    time_unix = convert_to_unix_time(1, 1, time_of_day)  # Using January 1st as a dummy date
+
+    # Predict the travel time using cubic spline interpolation
+    predicted_time = cubic_interpolate(time_unix, times_unix, y_values_avg)
+
+    return predicted_time
+
+# Allow input for predicted travel time, while ensuring it's in the right format
+while True:
+    tt = input("Input time for estimated travel time from UCLA to LAX (In the form: 'HH:MM:SS') -  ")
+
+    time_parts = tt.split(':')  # Separate hours, minutes, + seconds
+    if len(time_parts) == 3:
+        hour, minute, second = time_parts
+        # Check if each are integers
+        if hour.isdigit() and minute.isdigit() and second.isdigit():
+            # Check for valid time format
+            if 0 <= int(hour) < 24 and 0 <= int(minute) < 60 and 0 <= int(second) < 60:
+                break
+        print("Invalid time - please enter the time in the format HH:MM:SS.")
+ptt = predict_travel_time(tt)
+
+hours = int(ptt/60)
+mins = int((ptt - (60*hours))%60)
+tempsecs = ((ptt -(60*hours) - mins) * 60) 
+secs = int(tempsecs*10)/10
+
+if hours > 0:
+    print("Predicted travel time: ", hours, " hours, ", mins, " minutes and ", secs, " seconds")
+else: 
+    print("Predicted travel time: ", mins, " minutes and ", secs, " seconds")
+
 # ----------------------- ALL DATA -----------------------
 
 # Convert timestamps to datetime objects
