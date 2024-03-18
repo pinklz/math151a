@@ -129,21 +129,8 @@ plt.savefig('averagestuff.png')
 plt.clf()
 
 
-
-from datetime import datetime
-
 def convert_to_unix_time(month, day, time):
-    """
-    Converts a given month, day, and time into Unix time.
 
-    Args:
-    - month: Integer representing the month (1-12).
-    - day: Integer representing the day of the month (1-31).
-    - time: String representing the time in the format "HH:MM:SS" (24-hour format).
-
-    Returns:
-    - The Unix time corresponding to the input date and time.
-    """
     # Combine month, day, and time into a single string
     date_time_str = f"{month:02d}-{day:02d} {time}"
 
@@ -156,15 +143,7 @@ def convert_to_unix_time(month, day, time):
     return unix_time
 
 def predict_travel_time(time_of_day):
-    """
-    Predicts the travel time for a given time of day using cubic spline interpolation on the average travel times.
 
-    Args:
-    - time_of_day: String representing the time of day in the format "HH:MM:SS" (24-hour format).
-
-    Returns:
-    - The predicted travel time for the given time of day.
-    """
     # Convert the time of day to Unix time
     time_unix = convert_to_unix_time(1, 1, time_of_day)  # Using January 1st as a dummy date
 
